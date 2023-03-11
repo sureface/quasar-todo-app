@@ -46,17 +46,13 @@
         <template v-slot:body-cell-controls="props">
           <q-td :props="props">
             <div>
-              <q-btn color="positive" round size="sm" icon="edit" class="q-mr-sm" @click="editRow(props)"/>
+              <q-btn color="positive" round size="sm" icon="edit" class="q-mr-sm" @click="sendRowProp(props)"/>
               <q-btn color="negative" round size="sm" icon="remove" @click="delRow(props)"/>
             </div>
           </q-td>
         </template>
 
       </q-table>
-
-
-
-
 
     </div>
   </div>
@@ -76,6 +72,7 @@ export default {
       name_uz: '',
       address: '',
       cost: 0,
+      isEdit: false,
       columns: [
         {
           name: 'name',
@@ -92,6 +89,7 @@ export default {
       ],
       show_dialog: false,
       show_dialog2: false,
+      editId: 0,
     }
   },
   created() {
@@ -101,7 +99,6 @@ export default {
     async loadProducts(pageNum) {
       const data = await api.get(`/api/product`);
       this.products = await data.data;
-      console.log(this.products);
     },
     async delRow(item) {
       const id = item.row.id
@@ -111,7 +108,6 @@ export default {
         this.loadProducts()
       }
 
-      console.log(result);
     },
     async addRow() {
 
@@ -137,13 +133,15 @@ export default {
         this.cost = null
       }
     },
-    async editRow(item) {
+    sendRowProp(item) {
       console.log(item.row);
+      this.editId = item.row.id
       this.show_dialog2 = true;
       this.name_uz = item.row.name_uz
       this.address = item.row.address
       this.cost = item.row.cost
-
+    },
+    async editRow() {
       let config = {
         headers: {
           'Content-Type': 'application/json'
@@ -151,7 +149,7 @@ export default {
       }
 
       const data = {
-        id: item.row.id,
+        id: this.editId,
         product_type_id: 1,
         name_uz: this.name_uz,
         cost: this.cost,
@@ -160,14 +158,13 @@ export default {
       }
 
       const res = await api.put(`/api/product`, data, config)
-      console.log(res);
-      // if (res.status === 200) {
-      //   this.loadProducts()
-      //   this.name_uz = ''
-      //   this.address = ''
-      //   this.cost = null
-      // }
-
+      if (res.status === 200) {
+        this.loadProducts()
+        this.name_uz = ''
+        this.address = ''
+        this.cost = null
+        this.editId = 1
+      }
     }
   },
 }
