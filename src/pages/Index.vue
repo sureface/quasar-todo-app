@@ -12,12 +12,13 @@
         <q-dialog v-model="show_dialog">
           <q-card style="width: 600px;">
             <q-card-section>
-              <q-input filled v-model="name_uz" label="your Name.."  class="q-mb-md"/>
-              <q-input filled v-model="address" label="youtr address.."  class="q-mb-md"/>
-              <q-input filled v-model="cost" label="your price" type="number"  class=""/>
+              <q-input filled v-model="name_uz" label="your Name.." class="q-mb-md" :rules="[val => !!val || 'Field is required']"/>
+              <q-input filled v-model="address" label="youtr address.."  class="q-mb-md" :rules="[val => !!val || 'Field is required']"/>
+              <q-input filled v-model="cost" label="your price" type="number"  class="" :rules="[val => !!val || 'Field is required']"/>
             </q-card-section>
             <q-card-actions align="right">
-             <q-btn flat label="add" color="primary" v-close-popup @click="addRow"></q-btn>
+              <q-btn flat label="cencel" color="negative" v-close-popup></q-btn>
+              <q-btn flat label="add" color="primary" v-close-popup @click="addRow"></q-btn>
             </q-card-actions>
           </q-card>
         </q-dialog>
