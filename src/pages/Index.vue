@@ -1,39 +1,21 @@
 <template>
  <div class="wrapper">
-    <div class="video-bg">
-      <video autoplay loop muted>
-        <source src="~/src/assets/video/bg.mp4" type="video/webm">
-        <source src="~/src/assets/video/bg.mp4" type="video/mp4">
-      </video>
-    </div>
+
+    <bg-video />
+
     <div class="app">
       <header class="q-mb-md">
-        <q-btn icon="add" round size="md" color="primary" @click="show_dialog = true"/>
-        <q-dialog v-model="show_dialog">
-          <q-card style="width: 600px;">
-            <q-card-section>
-              <q-input filled v-model="name_uz" label="your Name.." class="q-mb-md" :rules="[val => !!val || 'Field is required']"/>
-              <q-input filled v-model="address" label="youtr address.."  class="q-mb-md" :rules="[val => !!val || 'Field is required']"/>
-              <q-input filled v-model="cost" label="your price" type="number"  class="" :rules="[val => !!val || 'Field is required']"/>
-            </q-card-section>
-            <q-card-actions align="right">
-              <q-btn flat label="cencel" color="negative" v-close-popup></q-btn>
-              <q-btn flat label="add" color="primary" v-close-popup @click="addRow"></q-btn>
-            </q-card-actions>
-          </q-card>
-        </q-dialog>
-        <q-dialog v-model="show_dialog2">
-          <q-card style="width: 600px;">
-            <q-card-section>
-              <q-input filled v-model="name_uz" label="your Name.."  class="q-mb-md"/>
-              <q-input filled v-model="address" label="youtr address.."  class="q-mb-md"/>
-              <q-input filled v-model="cost" label="your price" type="number"  class=""/>
-            </q-card-section>
-            <q-card-actions align="right">
-             <q-btn flat label="add" color="primary" v-close-popup @click="editRow"></q-btn>
-            </q-card-actions>
-          </q-card>
-        </q-dialog>
+
+        <q-btn icon="add" round size="md" color="primary" @click="openModalAdd"/>
+
+        <modal-add
+          :opened="show_dialog"
+          @toggle="show_dialog = false"
+          @added-product="handleEvent"
+          :product="currentProduct"
+        />
+
+
       </header>
 
       <q-table
@@ -47,7 +29,8 @@
         <template v-slot:body-cell-controls="props">
           <q-td :props="props">
             <div>
-              <q-btn color="positive" round size="sm" icon="edit" class="q-mr-sm" @click="sendRowProp(props)"/>
+              <q-btn color="positive" round size="sm" icon="edit" class="q-mr-sm" @click="openEditModal(props)"/>
+
               <q-btn color="negative" round size="sm" icon="remove" @click="delRow(props)"/>
             </div>
           </q-td>
@@ -61,19 +44,21 @@
 
 <script>
 import { api } from 'src/boot/axios.js';
+import ModalAdd from 'src/components/modalAdd.vue';
+import BgVideo from 'src/components/bgVideo.vue';
 
 export default {
   name: 'PageIndex',
-  components: {
+  components:{
+    ModalAdd,
+    BgVideo,
   },
   data() {
     return {
       products: [],
       limit: 9,
-      name_uz: '',
-      address: '',
-      cost: 0,
       isEdit: false,
+      isOpen: false,
       columns: [
         {
           name: 'name',
@@ -89,29 +74,47 @@ export default {
         { name: 'controls', label: 'controls', field: 'controls' },
       ],
       show_dialog: false,
-      show_dialog2: false,
-      editId: 0,
+      currentProduct: {},
     }
   },
   created() {
     this.loadProducts()
   },
   methods: {
-    async loadProducts(pageNum) {
+    async loadProducts() {
       const data = await api.get(`/api/product`);
       this.products = await data.data;
     },
     async delRow(item) {
-      const id = item.row.id
-      const result = await api.delete(`/api/product/${id}`)
+      const result = await api.delete(`/api/product/${item.row.id}`)
 
       if(result.data) {
         this.loadProducts()
       }
 
     },
-    async addRow() {
 
+    detectBtnPressed() {
+      this.show_dialog = true;
+    },
+
+
+    openEditModal(item) {
+      this.currentProduct = item.row
+      this.show_dialog = true;
+    },
+
+    openModalAdd() {
+      this.show_dialog =true;
+      this.currentProduct = {
+        name_uz: '',
+        address: '',
+        cost: '',
+        id: 0,
+      }
+    },
+
+    async addRow(form) {
       let config = {
         headers: {
           'Content-Type': 'application/json'
@@ -120,29 +123,21 @@ export default {
 
       const data = {
         product_type_id: 0,
-        name_uz: this.name_uz,
-        cost: this.cost,
-        address: this.address,
+        name_uz: form.name_uz,
+        cost: form.cost,
+        address: form.address,
         created_date: '2023-03-11T12:55:08.010Z'
       }
 
       const res = await api.post('/api/product', data, config)
+
       if (res.status === 200) {
         this.loadProducts()
-        this.name_uz = ''
-        this.address = ''
-        this.cost = null
       }
     },
-    sendRowProp(item) {
-      console.log(item.row);
-      this.editId = item.row.id
-      this.show_dialog2 = true;
-      this.name_uz = item.row.name_uz
-      this.address = item.row.address
-      this.cost = item.row.cost
-    },
-    async editRow() {
+
+
+    async editRow(form) {
       let config = {
         headers: {
           'Content-Type': 'application/json'
@@ -150,23 +145,30 @@ export default {
       }
 
       const data = {
-        id: this.editId,
+        id: this.currentProduct.id,
         product_type_id: 1,
-        name_uz: this.name_uz,
-        cost: this.cost,
-        address: this.address,
+        name_uz: form.name_uz,
+        cost: form.cost,
+        address: form.address,
         created_date: '2023-03-11T13:46:49.114Z'
       }
 
       const res = await api.put(`/api/product`, data, config)
       if (res.status === 200) {
         this.loadProducts()
-        this.name_uz = ''
-        this.address = ''
-        this.cost = null
-        this.editId = 1
       }
+    },
+
+
+    handleEvent(form) {
+      if(this.currentProduct.id === 0) {
+        this.addRow(form)
+        return;
+      }
+      this.editRow(form)
     }
+
+
   },
 }
 </script>
